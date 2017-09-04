@@ -1,0 +1,8 @@
+[package]
+name = "mcts"
+version = "0.1.0"
+authors = ["Markus Siemens <markus@m-siemens.de>"]
+
+[dependencies]
+enum-display-derive = "0.1.0"
+rand = "0.3.16"
