@@ -125,18 +125,20 @@ impl Board {
         actions
     }
 
-    pub fn get_reward(&self, player: Player) -> i32 {
+    pub fn get_reward(&self, player: Player) -> Option<i32> {
         if self.is_ended() {
             if let Some(winner) = self.get_winner() {
                 if winner == player {
-                    return 1;
+                    return Some(1);
                 } else {
-                    return -1;
+                    return Some(-1);
                 }
+            } else {
+                return Some(0);
             }
         }
 
-        return 0;
+        return None;
     }
 
     pub fn print(&self) {

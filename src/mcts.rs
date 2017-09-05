@@ -50,17 +50,18 @@ impl Node {
             return None;
         }
 
-        // Remove already tried actions
+        // Remove already explored actions
         for child in &self.children {
             actions.remove_item(&child.action.expect("Child has no action"));
         }
 
         if actions.len() == 1 {
+            // Only one action to explore, then this node will be fully expanded
             self.state = NodeState::FullyExpanded;
         }
 
         // Perform action
-        let action = *rand::thread_rng().choose(&actions).unwrap();
+        let action = *rand::thread_rng().choose(&actions).expect("actions is empty");
         let mut board = self.board.clone();
         board.perform_action(action);
 
@@ -73,10 +74,10 @@ impl Node {
             action: Some(action),
             state: NodeState::Expandable,
         });
-
         self.children.last_mut()
     }
 
+    /// Simulate the current node's game until reaching an outcome
     fn simulate(&mut self) -> i32 {
         assert!(self.runs == 0);
         assert!(self.wins == 0);
@@ -87,44 +88,39 @@ impl Node {
             let actions = board.get_actions();
 
             if !actions.is_empty() {
-                let action = *rand::thread_rng().choose(&actions).unwrap();
+                let action = *rand::thread_rng().choose(&actions).expect("actions is empty");
                 board.perform_action(action);
             }
 
-            if board.is_ended() {
-                return board.get_reward(self.us);
+            if let Some(reward) = board.get_reward(self.us) {
+                self.runs = 1;
+                self.wins = reward;
+
+                reward
             }
         }
     }
 
+    /// Perform Monte Carlo Tree Search (selection, expansion, simulation, backpropagation)
     fn perform_mcts(&mut self) -> i32 {
         let current_reward = self.board.get_reward(self.us);
         let reward = match self.state {
             NodeState::Leaf => return current_reward,
             NodeState::FullyExpanded => {
-                // No actions are missing, explore the best child
-                let child = self.best_child().unwrap();
+                // Current state's actions are fully explored, explore the best child (selection)
+                let child = self.best_child().expect("Fully expanded node without children");
                 child.perform_mcts()
             }
             NodeState::Expandable => {
-                // Expand this node -> add unexplored child and simulate it
+                // Current state has unexplored actions -> expansion + simulation
                 match self.expand() {
-                    Some(child) => {
-                        let reward = child.simulate();
-
-                        assert!(child.runs == 0);
-                        assert!(child.wins == 0);
-
-                        child.runs = 1;
-                        child.wins = reward;
-
-                        reward
-                    }
+                    Some(child) => child.simulate(),
                     None => return current_reward,
                 }
             }
         };
 
+        // Backpropagation of simulation results
         self.runs += 1;
         self.wins += reward;
 
@@ -132,8 +128,8 @@ impl Node {
     }
 
     fn finished(&self) -> bool {
-        (self.state == NodeState::FullyExpanded || self.state == NodeState::Leaf)
-            && self.children.iter().all(|c| c.state == NodeState::FullyExpanded || c.state == NodeState::Leaf)
+        self.state != NodeState::Expandable
+            && self.children.iter().all(|c| c.state != NodeState::Expandable)
     }
 }
 
@@ -164,7 +160,7 @@ impl MCTS {
     }
 
     pub fn get_action(&mut self) -> Option<(i32, i32)> {
-        self.root.best_child().map(|c| c.action.unwrap())
+        self.root.best_child().map(|c| c.action.expect("Best child without action"))
     }
 
     pub fn run(&mut self) {
@@ -174,13 +170,15 @@ impl MCTS {
     }
 
     pub fn perform_action(&mut self, action: (i32, i32)) {
+        // Find index of child node with the desired action
+        // That way, we don't have to start over but re-use all previous calculations
         let idx = self.root
             .children
             .iter()
             .enumerate()
-            .find(|&(_, c)| c.action.unwrap() == action)
+            .find(|&(_, c)| c.action.expect("Child without action") == action)
             .map(|(i, _)| i)
-            .unwrap();
+            .expect("No child with action to be performed");
 
         let node = self.root.children.remove(idx);
 
