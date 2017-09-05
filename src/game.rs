@@ -84,10 +84,6 @@ impl Board {
         None
     }
 
-    pub fn is_winner(&self, player: Player) -> bool {
-        self.get_winner() == Some(player)
-    }
-
     pub fn is_legal_action(&self, action: (i32, i32)) -> bool {
         if action.0 < 0 || action.0 > 2 || action.1 < 0 || action.1 > 2 {
             return false;
@@ -184,22 +180,3 @@ impl Debug for Board {
         write!(f, "}}")
     }
 }
-
-//mod test {
-//    use super::Board;
-//    use super::Player::{X, O};
-//
-//    #[test]
-//    fn test_valid_moves() {
-//        let board = Board {
-//            fields: [
-//                [Some(X), Some(O), Some(X)],
-//                [None,    Some(X), None   ],
-//                [Some(O), None   , None   ],
-//            ],
-//            current_player: O,
-//        };
-//
-//        assert_eq!(board.get_actions(), vec![()]);
-//    }
-//}

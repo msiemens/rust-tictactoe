@@ -50,7 +50,7 @@ fn main() {
         let mut action;
 
         if next_player == PLAYER_USER {
-            print!("Action [e.g. a1]: ");
+            print!("Action [e.g. 1a]: ");
             io::stdout().flush().unwrap();
 
             loop {

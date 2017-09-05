@@ -96,14 +96,14 @@ impl Node {
                 self.runs = 1;
                 self.wins = reward;
 
-                reward
+                return reward;
             }
         }
     }
 
     /// Perform Monte Carlo Tree Search (selection, expansion, simulation, backpropagation)
     fn perform_mcts(&mut self) -> i32 {
-        let current_reward = self.board.get_reward(self.us);
+        let current_reward = self.board.get_reward(self.us).unwrap_or(0);
         let reward = match self.state {
             NodeState::Leaf => return current_reward,
             NodeState::FullyExpanded => {
@@ -115,6 +115,7 @@ impl Node {
                 // Current state has unexplored actions -> expansion + simulation
                 match self.expand() {
                     Some(child) => child.simulate(),
+                    // No child created -> this is a leaf node
                     None => return current_reward,
                 }
             }
@@ -125,11 +126,6 @@ impl Node {
         self.wins += reward;
 
         reward
-    }
-
-    fn finished(&self) -> bool {
-        self.state != NodeState::Expandable
-            && self.children.iter().all(|c| c.state != NodeState::Expandable)
     }
 }
 
@@ -164,9 +160,7 @@ impl MCTS {
     }
 
     pub fn run(&mut self) {
-        if !self.root.finished() {
-            self.root.perform_mcts();
-        }
+        self.root.perform_mcts();
     }
 
     pub fn perform_action(&mut self, action: (i32, i32)) {
